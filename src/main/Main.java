@@ -2,8 +2,13 @@ package main;
 
 import java.awt.Image;
 import java.awt.Toolkit;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,22 +26,17 @@ public class Main {
 	private final String CONFIG_PATH = "config.txt";
 
 	public Main() throws Exception {
-		//new UserSetupManager(CONFIG_PATH);
-
-		//CertificateInstaller certificateInstaller = new CertificateInstaller();
-		//certificateInstaller.install("parentconnect.aacps.org", 443);
+		startup();
 
 		Image icon = Toolkit.getDefaultToolkit().createImage(getClass().getResource("/icon.png"));
 
-		updateGrades();
-
-		ArrayList<Assignment> oldAssignmentList = readAssignments();
-		ArrayList<Assignment> newAssignmentList = oldAssignmentList;
+		ArrayList<Assignment> oldAssignmentList = null;
+		ArrayList<Assignment> newAssignmentList = null;
 
 		while(true) {
-			updateGrades();
+			oldAssignmentList = readAssignments();
 
-			oldAssignmentList = newAssignmentList;
+			updateGrades();
 			newAssignmentList = readAssignments();
 
 			ArrayList<Assignment> newAssignments = getNewAssignments(oldAssignmentList, newAssignmentList, false);
@@ -45,11 +45,25 @@ public class Main {
 				new Notif(icon, "Recently posted assignment", "New assignment posted for " + a.getCourseName(), a.getAssignmentName() + " - " + a.getScore());
 
 				System.out.println("New assignment posted for " + a.getCourseName() + ": " + a.getAssignmentName() + " - " + a.getScore());
-
-				Thread.sleep(60000);
 			}
 
 			Thread.sleep(3600000);
+		}
+	}
+
+	private void startup() throws Exception {
+		if(!new File(CONFIG_PATH).isFile()) {
+			new UserSetupManager(CONFIG_PATH);
+
+			CertificateInstaller certificateInstaller = new CertificateInstaller();
+			certificateInstaller.getKeyStore().deleteEntry("parentconnect.aacps.org");
+			if(!certificateInstaller.getKeyStore().containsAlias("parentconnect.aacps.org")) {
+				certificateInstaller.install("parentconnect.aacps.org", 443);
+			}
+
+			updateGrades();
+		}else {
+			Configurations.readConfigurations(CONFIG_PATH);
 		}
 	}
 
@@ -123,9 +137,14 @@ public class Main {
 		GradeScrapper scrapper = null;
 
 		try {
-			scrapper = new GradeScrapper(parameters.get(0), parameters.get(1), parameters.get(2),
-					parameters.get(3), parameters.get(4), parameters.get(5),
-					Arrays.copyOf(options.toArray(), options.size(), String[].class));
+			scrapper = new GradeScrapper(
+					Configurations.getSingleConfiguration("firstname"),
+					Configurations.getSingleConfiguration("middlename"),
+					Configurations.getSingleConfiguration("lastname"),
+					Configurations.getSingleConfiguration("username"),
+					Configurations.getSingleConfiguration("password"),
+					Configurations.getSingleConfiguration("chromedriverpath"),
+					Configurations.getMultiConfiguration("seleniumoptions").toArray(new String[0]));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
