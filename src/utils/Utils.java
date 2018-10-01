@@ -16,7 +16,7 @@ public class Utils {
 
 	public static boolean urlIsAvailable(String website) {
 		try {
-			URL url = new URL("https://parentconnect.aacps.org");
+			URL url = new URL(website);
 			URLConnection connection = url.openConnection();
 			connection.connect();
 			connection.getInputStream().close();
@@ -25,8 +25,6 @@ public class Utils {
 		} catch (MalformedURLException malformedURL) {
 			malformedURL.printStackTrace();
 		} catch (IOException io) {
-			io.printStackTrace();
-
 			return false;
 		}
 

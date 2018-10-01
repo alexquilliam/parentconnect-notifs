@@ -1,11 +1,11 @@
 package main;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class UserSetupManager {
-	public UserSetupManager(String configFilePath) {
+	public UserSetupManager(String configPath) {
 		Scanner scanner = new Scanner(System.in);
 
 		System.out.print("Enter your full name (the one used on ParentCONNECTxp), seperated by spaces: ");
@@ -24,19 +24,15 @@ public class UserSetupManager {
 
 		String[] names = name.split(" ");
 
-		String configData = String.join("\n",
-				String.join("\n", names),
-				username,
-				password,
-				chromeDriverPath,
-				"disable-infobars",
-				"start-maximized",
-				"headless");
+		Configurations.addSingleConfiguration("firstname", names[0]);
+		Configurations.addSingleConfiguration("middlename", names[1]);
+		Configurations.addSingleConfiguration("lastname", names[2]);
+		Configurations.addSingleConfiguration("username", username);
+		Configurations.addSingleConfiguration("password", password);
+		Configurations.addSingleConfiguration("chromedriverpath", chromeDriverPath);
 
-		try {
-			Files.write(Paths.get(configFilePath), configData.getBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		Configurations.addMultiConfiguration("seleniumoptions", new ArrayList<String>(Arrays.asList("disable-infobars", "start-maximized", "headless")));
+
+		Configurations.writeConfigurations(configPath);
 	}
 }

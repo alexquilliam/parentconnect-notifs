@@ -1,56 +1,98 @@
 package main;
 
 import java.awt.Image;
+import java.awt.SystemTray;
 import java.awt.Toolkit;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.TreeMap;
 
 import notif.Notif;
 import scraper.Assignment;
 import scraper.CertificateInstaller;
 import scraper.ClassScore;
 import scraper.GradeScrapper;
+import utils.Utils;
 
 @SuppressWarnings("unused")
 public class Main {
-	private final String ASSIGNMENTS_PATH = "assignments.txt";
-	private final String CLASS_SCORES_PATH = "classscores.txt";
-	private final String CONFIG_PATH = "config.txt";
+	private final String ASSIGNMENTS_PATH = "assignments";
+	private final String CLASS_SCORES_PATH = "classscores";
+	private final String CONFIG_PATH = "config";
 
 	public Main() throws Exception {
-		//new UserSetupManager(CONFIG_PATH);
-
-		//CertificateInstaller certificateInstaller = new CertificateInstaller();
-		//certificateInstaller.install("parentconnect.aacps.org", 443);
+		startup();
 
 		Image icon = Toolkit.getDefaultToolkit().createImage(getClass().getResource("/icon.png"));
 
-		updateGrades();
-
-		ArrayList<Assignment> oldAssignmentList = readAssignments();
-		ArrayList<Assignment> newAssignmentList = oldAssignmentList;
+		ArrayList<Assignment> oldAssignmentList = null;
+		ArrayList<Assignment> newAssignmentList = null;
 
 		while(true) {
-			updateGrades();
+			while(!Utils.urlIsAvailable("https://parentconnect.aacps.org")) {
+				Thread.sleep(1800000);
+			}
 
-			oldAssignmentList = newAssignmentList;
+			oldAssignmentList = readAssignments();
+
+			updateGrades();
 			newAssignmentList = readAssignments();
 
-			ArrayList<Assignment> newAssignments = getNewAssignments(oldAssignmentList, newAssignmentList, false);
+			TreeMap<String, ArrayList<Assignment>> newAssignments = sortAssignmentsByClass(getNewAssignments(oldAssignmentList, newAssignmentList, true));
 
-			for(Assignment a : newAssignments) {
-				new Notif(icon, "Recently posted assignment", "New assignment posted for " + a.getCourseName(), a.getAssignmentName() + " - " + a.getScore());
+			for(String key : newAssignments.keySet()) {
+				ArrayList<String> assignments = new ArrayList<String>();
+				for(Assignment a : newAssignments.get(key)) {
+					assignments.add(a.getAssignmentName() + " (" + a.getScore() + ")");
+				}
 
-				System.out.println("New assignment posted for " + a.getCourseName() + ": " + a.getAssignmentName() + " - " + a.getScore());
+				new Notif(icon, "", "New assignments posted for " + key, String.join("\n", assignments));
 
-				Thread.sleep(60000);
+				System.out.println("New assignments posted for " + key + "\n" + String.join("\n", assignments) + "\n");
 			}
 
 			Thread.sleep(3600000);
 		}
+	}
+
+	private void startup() throws Exception {
+		if(!SystemTray.isSupported()) {
+			System.err.println("System trays are not supported!");
+
+			System.exit(1);
+		}
+
+		if(!new File(CONFIG_PATH).isFile()) {
+			new UserSetupManager(CONFIG_PATH);
+
+			CertificateInstaller certificateInstaller = new CertificateInstaller();
+			certificateInstaller.getKeyStore().deleteEntry("parentconnect.aacps.org");
+			if(!certificateInstaller.getKeyStore().containsAlias("parentconnect.aacps.org")) {
+				certificateInstaller.install("parentconnect.aacps.org", 443);
+			}
+
+			updateGrades();
+		}else {
+			Configurations.readConfigurations(CONFIG_PATH);
+		}
+	}
+
+	private TreeMap<String, ArrayList<Assignment>> sortAssignmentsByClass(ArrayList<Assignment> assignments) {
+		TreeMap<String, ArrayList<Assignment>> sortedAssignments = new TreeMap<String, ArrayList<Assignment>>();
+
+		for(Assignment a : assignments) {
+			if(sortedAssignments.containsKey(a.getCourseName())) {
+				sortedAssignments.get(a.getCourseName()).add(a);
+			}else {
+				sortedAssignments.put(a.getCourseName(), new ArrayList<Assignment>(Arrays.asList(a)));
+			}
+		}
+
+		return sortedAssignments;
 	}
 
 	private ArrayList<Assignment> getNewAssignments(ArrayList<Assignment> oldAssignmentList, ArrayList<Assignment> newAssignmentList, boolean hasGrade) {
@@ -123,9 +165,14 @@ public class Main {
 		GradeScrapper scrapper = null;
 
 		try {
-			scrapper = new GradeScrapper(parameters.get(0), parameters.get(1), parameters.get(2),
-					parameters.get(3), parameters.get(4), parameters.get(5),
-					Arrays.copyOf(options.toArray(), options.size(), String[].class));
+			scrapper = new GradeScrapper(
+					Configurations.getSingleConfiguration("firstname"),
+					Configurations.getSingleConfiguration("middlename"),
+					Configurations.getSingleConfiguration("lastname"),
+					Configurations.getSingleConfiguration("username"),
+					Configurations.getSingleConfiguration("password"),
+					Configurations.getSingleConfiguration("chromedriverpath"),
+					Configurations.getMultiConfiguration("seleniumoptions").toArray(new String[0]));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

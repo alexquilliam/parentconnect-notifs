@@ -1,6 +1,5 @@
 package scraper;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,9 +9,6 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -24,6 +20,16 @@ import javax.net.ssl.X509TrustManager;
 
 public class CertificateInstaller {
 	private final char SEPERATOR = File.separatorChar;
+
+	private KeyStore javaKeyStore = null;
+
+	public CertificateInstaller() throws Exception {
+		javaKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+		try(InputStream keyStoreData = new FileInputStream(System.getProperty("java.home") + File.separatorChar + "lib" + File.separatorChar + "security" + File.separatorChar + "cacerts")){
+			javaKeyStore.load(keyStoreData, "changeit".toCharArray());
+		}
+	}
 
 	public void install(String host, int port) throws Exception {
 		char[] passphrase = "changeit".toCharArray();
@@ -80,65 +86,10 @@ public class CertificateInstaller {
 		OutputStream out = new FileOutputStream("jssecacerts");
 		keyStore.store(out, passphrase);
 		out.close();
-
-		extractCert(host, new String(passphrase));
-
-		InputStream oldStream = System.in;
-		try {
-			System.setIn(new ByteArrayInputStream("y".getBytes("UTF-8")));
-
-			importCert(host, new String(passphrase));
-		} finally {
-			System.setIn(oldStream);
-		}
 	}
 
-	@SuppressWarnings("unused")
-	private void removeCert(String alias) {
-		String command =
-				"-delete " +
-				"-alias " + alias + " " +
-				"-keystore \"" + System.getProperty("java.home") + SEPERATOR + "lib" + SEPERATOR + "security" + SEPERATOR + "cacerts\"";
-
-		executeKeytool(command);
-	}
-
-	private void extractCert(String host, String passphrase) {
-		String command =
-				"-exportcert " +
-				"-alias " + host + "-1 " +
-				"-keystore " + "jssecacerts " +
-				"-storepass " + passphrase + " " +
-				"-file " + host + ".cer";
-
-		executeKeytool(command);
-	}
-
-	private void importCert(String host, String passphrase) {
-		String command =
-				"-importcert " +
-				"-alias " + host + " " +
-				"-keystore \"" + System.getProperty("java.home") + SEPERATOR + "lib" + SEPERATOR + "security" + SEPERATOR + "cacerts\" " +
-				"-storepass " + passphrase + " " +
-				"-file " + host + ".cer";
-
-		executeKeytool(command);
-	}
-
-	@SuppressWarnings("restriction")
-	private void executeKeytool(String command) {
-		try {
-			ArrayList<String> commands = new ArrayList<String>();
-
-			Matcher matcher = Pattern.compile("([^\"]\\S*|\".+?\")\\s*").matcher(command);
-			while(matcher.find()) {
-				commands.add(matcher.group(1).replace("\"", ""));
-			}
-
-			sun.security.tools.keytool.Main.main(commands.toArray(new String[0]));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public KeyStore getKeyStore() {
+		return javaKeyStore;
 	}
 
 	private static class SavingTrustManager implements X509TrustManager {
