@@ -11,6 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import notif.Notif;
 import scraper.Assignment;
 import scraper.CertificateInstaller;
@@ -23,6 +26,8 @@ public class Main {
 	private final String ASSIGNMENTS_PATH = "assignments";
 	private final String CLASS_SCORES_PATH = "classscores";
 	private final String CONFIG_PATH = "config";
+	
+	private Logger logger = Logger.getLogger(Main.class);
 
 	public Main() throws Exception {
 		startup();
@@ -38,12 +43,17 @@ public class Main {
 			}
 
 			oldAssignmentList = readAssignments();
+			
+			logger.info("Updating assignments list...");
 
 			updateGrades();
 			newAssignmentList = readAssignments();
 
+			logger.info("Sorting new assignments...");
+			
 			TreeMap<String, ArrayList<Assignment>> newAssignments = sortAssignmentsByClass(getNewAssignments(oldAssignmentList, newAssignmentList, true));
 
+			logger.info("Displaying new assignments.");
 			for(String key : newAssignments.keySet()) {
 				ArrayList<String> assignments = new ArrayList<String>();
 				for(Assignment a : newAssignments.get(key)) {
@@ -52,7 +62,7 @@ public class Main {
 
 				new Notif(icon, "", "New assignments posted for " + key, String.join("\n", assignments));
 
-				System.out.println("New assignments posted for " + key + "\n" + String.join("\n", assignments) + "\n");
+				logger.info("New assignments posted for " + key + "\n" + String.join("\n", assignments));
 			}
 
 			Thread.sleep(3600000);
@@ -60,23 +70,32 @@ public class Main {
 	}
 
 	private void startup() throws Exception {
+		logger.info("Running startup code...");
+		
 		if(!SystemTray.isSupported()) {
-			System.err.println("System trays are not supported!");
+			logger.info("System trays are not supported. Exiting.");
 
 			System.exit(1);
 		}
 
 		if(!new File(CONFIG_PATH).isFile()) {
+			logger.info("Setting up configurations...");
+			
 			new UserSetupManager(CONFIG_PATH);
 
 			CertificateInstaller certificateInstaller = new CertificateInstaller();
-			certificateInstaller.getKeyStore().deleteEntry("parentconnect.aacps.org");
 			if(!certificateInstaller.getKeyStore().containsAlias("parentconnect.aacps.org")) {
+				logger.info("Installing SSL certificate for parentconnect.aacps.org...");
+				
 				certificateInstaller.install("parentconnect.aacps.org", 443);
 			}
+			
+			logger.info("Updating grades...");
 
 			updateGrades();
 		}else {
+			logger.info("Reading configurations...");
+			
 			Configurations.readConfigurations(CONFIG_PATH);
 		}
 	}
