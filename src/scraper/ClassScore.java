@@ -6,8 +6,7 @@ import java.util.Arrays;
 public class ClassScore {
 	private String courseNumber, courseTitle, currentGrade, currentScore, teacher;
 
-	public ClassScore() {
-	}
+	public ClassScore() {}
 
 	public ClassScore(ArrayList<String> parameters) {
 		courseNumber = parameters.get(0);

@@ -10,11 +10,11 @@ public class Configurations {
 	private static TreeMap<String, String> singleValueMappings = new TreeMap<String, String>();
 	private static TreeMap<String, ArrayList<String>> multiValueMappings = new TreeMap<String, ArrayList<String>>();
 
-	public static void readConfigurations(String configPath) {
+	public static void readConfigurations() {
 		String rawData = "";
 
 		try {
-			rawData = new String(Files.readAllBytes(Paths.get(configPath)));
+			rawData = new String(Files.readAllBytes(Paths.get(ResourcePaths.CONFIG_PATH)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -37,7 +37,7 @@ public class Configurations {
 		}
 	}
 
-	public static void writeConfigurations(String configPath) {
+	public static void writeConfigurations() {
 		String configData = "";
 
 		for(String s : singleValueMappings.keySet()) {
@@ -53,7 +53,7 @@ public class Configurations {
 		configData = configData.substring(0, configData.length() - 1);
 
 		try {
-			Files.write(Paths.get(configPath), configData.getBytes());
+			Files.write(Paths.get(ResourcePaths.CONFIG_PATH), configData.getBytes());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -1,0 +1,49 @@
+#table {
+	-fx-table-cell-border-color: transparent;
+}
+
+#table .table-column {
+	-fx-alignment: CENTER;
+}
+
+.column-header {
+    -fx-sort-icon-display: LEFT;
+}
+
+.table-row-cell:odd {
+	-fx-background-color: white;
+}
+
+.table-row-cell:even {
+	-fx-background-color: #bcc0c6;
+}
+
+.table-row-cell:filled:selected {
+	-fx-background: -fx-control-inner-background;
+	-fx-table-cell-border-color: transparent;
+}
+
+.table-row-cell:odd:filled:selected {
+	-fx-background-color: white;
+}
+
+.table-row-cell:even:filled:selected {
+	-fx-background-color: #bcc0c6;
+}
+
+.table-view *.scroll-bar:vertical *.increment-button,
+.table-view *.scroll-bar:vertical *.decrement-button {
+    -fx-background-color: null;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.table-view *.scroll-bar:vertical *.increment-arrow, 
+.table-view *.scroll-bar:vertical *.decrement-arrow {
+    -fx-background-color: null;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-shape: null;
+}
