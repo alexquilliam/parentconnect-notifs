@@ -88,7 +88,7 @@ public class GradeScrapper {
 		return classScores;
 	}
 
-	public ArrayList<Assignment> getAssignments() {
+	public AssignmentsList getAssignments() {
 		if(currentTab == Tab.CLASS_SCORES) {
 			driver.findElement(By.xpath("//a[@href='AssignmentsGeneral.asp']")).click();
 			currentTab = Tab.ASSIGNMENTS;
@@ -99,7 +99,7 @@ public class GradeScrapper {
 		option.selectByValue("THISSCHOOLYEAR");
 
 		WebElement assignmentTable = driver.findElement(By.className("clIGPTaskGenTbl"));
-		ArrayList<Assignment> assignments = new ArrayList<Assignment>();
+		AssignmentsList assignments = new AssignmentsList();
 
 		int i = 0;
 		List<WebElement> rows = assignmentTable.findElements(By.tagName("tr"));

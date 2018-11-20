@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class UserSetupManager {
-	public UserSetupManager(String configPath) {
+	public UserSetupManager() {
 		Scanner scanner = new Scanner(System.in);
 
 		System.out.print("Enter your full name (the one used on ParentCONNECTxp), seperated by spaces: ");
@@ -33,6 +33,6 @@ public class UserSetupManager {
 
 		Configurations.addMultiConfiguration("seleniumoptions", new ArrayList<String>(Arrays.asList("disable-infobars", "start-maximized", "headless")));
 
-		Configurations.writeConfigurations(configPath);
+		Configurations.writeConfigurations();
 	}
 }

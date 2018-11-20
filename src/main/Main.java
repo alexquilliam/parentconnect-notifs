@@ -1,8 +1,6 @@
 package main;
 
-import java.awt.Image;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -11,8 +9,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TreeMap;
 
-import notif.Notif;
+import org.apache.log4j.Logger;
+
 import scraper.Assignment;
+import scraper.AssignmentsList;
 import scraper.CertificateInstaller;
 import scraper.ClassScore;
 import scraper.GradeScrapper;
@@ -20,11 +20,14 @@ import utils.Utils;
 
 @SuppressWarnings("unused")
 public class Main {
-	private final String ASSIGNMENTS_PATH = "assignments";
-	private final String CLASS_SCORES_PATH = "classscores";
-	private final String CONFIG_PATH = "config";
+	private Logger logger = Logger.getLogger(Main.class);
 
-	public Main() throws Exception {
+	/*public Main() throws Exception {
+		AnalyzedClassScore score = new AnalyzedClassScore(ASSIGNMENTS_PATH, CATEGORIES_PATH, "H PRE-CALCULUS S1");
+		System.out.println(score.getTotalScore());
+		
+		System.exit(0);
+		
 		startup();
 
 		Image icon = Toolkit.getDefaultToolkit().createImage(getClass().getResource("/icon.png"));
@@ -37,47 +40,61 @@ public class Main {
 				Thread.sleep(1800000);
 			}
 
-			oldAssignmentList = readAssignments();
+			oldAssignmentList = Utils.readAssignments(ASSIGNMENTS_PATH);
+			
+			logger.info("Updating assignments list...");
 
 			updateGrades();
-			newAssignmentList = readAssignments();
+			newAssignmentList = Utils.readAssignments(ASSIGNMENTS_PATH);
 
+			logger.info("Sorting new assignments...");
+			
 			TreeMap<String, ArrayList<Assignment>> newAssignments = sortAssignmentsByClass(getNewAssignments(oldAssignmentList, newAssignmentList, true));
 
+			logger.info("Displaying new assignments.");
 			for(String key : newAssignments.keySet()) {
 				ArrayList<String> assignments = new ArrayList<String>();
 				for(Assignment a : newAssignments.get(key)) {
 					assignments.add(a.getAssignmentName() + " (" + a.getScore() + ")");
 				}
 
-				new Notif(icon, "", "New assignments posted for " + key, String.join("\n", assignments));
+				new Notif(icon, "Test", key, String.join("\n", assignments));
 
-				System.out.println("New assignments posted for " + key + "\n" + String.join("\n", assignments) + "\n");
+				logger.info(key + "\n" + String.join("\n", assignments));
 			}
 
 			Thread.sleep(3600000);
 		}
-	}
+	}*/
 
 	private void startup() throws Exception {
+		logger.info("Running startup code...");
+		
 		if(!SystemTray.isSupported()) {
-			System.err.println("System trays are not supported!");
+			logger.info("System trays are not supported. Exiting.");
 
 			System.exit(1);
 		}
 
-		if(!new File(CONFIG_PATH).isFile()) {
-			new UserSetupManager(CONFIG_PATH);
+		if(!new File(ResourcePaths.CONFIG_PATH).isFile()) {
+			logger.info("Setting up configurations...");
+			
+			new UserSetupManager();
 
 			CertificateInstaller certificateInstaller = new CertificateInstaller();
-			certificateInstaller.getKeyStore().deleteEntry("parentconnect.aacps.org");
 			if(!certificateInstaller.getKeyStore().containsAlias("parentconnect.aacps.org")) {
+				logger.info("Installing SSL certificate for parentconnect.aacps.org...");
+				
 				certificateInstaller.install("parentconnect.aacps.org", 443);
 			}
+			
+			logger.info("Updating grades...");
 
 			updateGrades();
 		}else {
-			Configurations.readConfigurations(CONFIG_PATH);
+			logger.info("Reading configurations...");
+			
+			Configurations.readConfigurations();
 		}
 	}
 
@@ -94,7 +111,7 @@ public class Main {
 
 		return sortedAssignments;
 	}
-
+	
 	private ArrayList<Assignment> getNewAssignments(ArrayList<Assignment> oldAssignmentList, ArrayList<Assignment> newAssignmentList, boolean hasGrade) {
 		ArrayList<Assignment> newAssignments = new ArrayList<Assignment>();
 
@@ -111,51 +128,11 @@ public class Main {
 		return newAssignments;
 	}
 
-	private ArrayList<Assignment> readAssignments() {
-		String unparsedAssignments = null;
-
-		try {
-			unparsedAssignments = new String(Files.readAllBytes(Paths.get(ASSIGNMENTS_PATH)));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		unparsedAssignments = unparsedAssignments.replaceAll("\\[|\\]", "");
-		String[] parsedAssignments = unparsedAssignments.split("\n");
-
-		ArrayList<Assignment> assignments = new ArrayList<Assignment>();
-		for (String s : parsedAssignments) {
-			assignments.add(new Assignment(new ArrayList<String>(Arrays.asList(s.split(", ")))));
-		}
-
-		return assignments;
-	}
-
-	private ArrayList<ClassScore> readClassScores() {
-		String unparsedClassScores = null;
-
-		try {
-			unparsedClassScores = new String(Files.readAllBytes(Paths.get(CLASS_SCORES_PATH)));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		unparsedClassScores = unparsedClassScores.replaceAll("\\[|\\]", "");
-		String[] parsedClassScores = unparsedClassScores.split("\n");
-
-		ArrayList<ClassScore> classScores = new ArrayList<ClassScore>();
-		for (String s : parsedClassScores) {
-			classScores.add(new ClassScore(new ArrayList<String>(Arrays.asList(s.split(", ")))));
-		}
-
-		return classScores;
-	}
-
 	private void updateGrades() {
 		ArrayList<String> parameters = new ArrayList<String>();
 
 		try {
-			Files.lines(Paths.get(CONFIG_PATH)).forEach(parameters::add);
+			Files.lines(Paths.get(ResourcePaths.CONFIG_PATH)).forEach(parameters::add);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -177,30 +154,12 @@ public class Main {
 			e.printStackTrace();
 		}
 
-		ArrayList<Assignment> assignments = scrapper.getAssignments();
+		AssignmentsList assignments = scrapper.getAssignments();
 		ArrayList<ClassScore> classScores = scrapper.getClassScores();
 
-		String persistantAssignments = "";
-		for (Assignment a : assignments) {
-			persistantAssignments += a.toString() + "\n";
-		}
-
-		String persistantClassScores = "";
-		for (ClassScore a : classScores) {
-			persistantClassScores += a.toString() + "\n";
-		}
-
-		try {
-			Files.write(Paths.get(ASSIGNMENTS_PATH), persistantAssignments.getBytes());
-			Files.write(Paths.get(CLASS_SCORES_PATH), persistantClassScores.getBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		Utils.updateAssignmentsFile(assignments);
+		Utils.updateClassScoresFile(classScores);
 
 		scrapper.terminate();
-	}
-
-	public static void main(String[] args) throws Exception {
-		new Main();
 	}
 }

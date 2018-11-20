@@ -95,7 +95,7 @@ public class Assignment {
 	}
 
 	public ArrayList<String> toList() {
-		return (ArrayList<String>) Arrays.asList(courseName, period, assignmentName, assignmentType, score, due, remark, teacher);
+		return new ArrayList<String>(Arrays.asList(courseName, period, assignmentName, assignmentType, score, due, remark, teacher));
 	}
 
 	@Override
