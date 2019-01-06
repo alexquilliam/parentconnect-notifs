@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import analysis.Category;
-import main.ResourcePaths;
 import scraper.Assignment;
 import scraper.AssignmentsList;
 import scraper.ClassScore;

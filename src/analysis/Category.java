@@ -6,6 +6,14 @@ public class Category {
 	private String name, alias;
 	private int weight;
 	private boolean hasAssignments;
+	private boolean hasGFE;
+	
+	public Category(String name, String alias, int weight, boolean hasAssignments, boolean hasGFE) {
+		this.name = name;
+		this.alias = alias;
+		this.weight = weight;
+		this.hasGFE = hasGFE;
+	}
 	
 	public Category(String name, String alias, int weight, boolean hasAssignments) {
 		this.name = name;
@@ -37,6 +45,14 @@ public class Category {
 
 	public void setHasAssignments(boolean hasAssignments) {
 		this.hasAssignments = hasAssignments;
+	}
+	
+	public boolean hasGFE() {
+		return hasGFE;
+	}
+
+	public void setHasGFE(boolean hasGFE) {
+		this.hasGFE = hasGFE;
 	}
 	
 	@Override

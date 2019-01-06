@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.TreeMap;
 
+import utils.ResourcePaths;
+
 public class Configurations {
 	private static TreeMap<String, String> singleValueMappings = new TreeMap<String, String>();
 	private static TreeMap<String, ArrayList<String>> multiValueMappings = new TreeMap<String, ArrayList<String>>();
