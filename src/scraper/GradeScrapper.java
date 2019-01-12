@@ -3,6 +3,10 @@ package scraper;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -28,6 +32,12 @@ public class GradeScrapper {
 	private Tab currentTab = Tab.ASSIGNMENTS;
 
 	public GradeScrapper(String firstName, String middleName, String lastName, String userName, String password, String chromeDriverPath, String... options) throws Exception {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				terminate();
+			}
+		});
+		
 		driver = initialize(chromeDriverPath, options);
 
 		if(!Utils.urlIsAvailable(TARGET_URL)) {
@@ -51,7 +61,9 @@ public class GradeScrapper {
 	}
 
 	public void terminate() {
-		driver.close();
+		if(driver != null) {
+			driver.quit();
+		}
 	}
 
 	public ArrayList<ClassScore> getClassScores() {
@@ -88,33 +100,31 @@ public class GradeScrapper {
 		return classScores;
 	}
 
-	public AssignmentsList getAssignments() {
+	public AssignmentsList getAssignments(String timeframe) {
 		if(currentTab == Tab.CLASS_SCORES) {
 			driver.findElement(By.xpath("//a[@href='AssignmentsGeneral.asp']")).click();
 			currentTab = Tab.ASSIGNMENTS;
 		}
 
-		WebElement timeframe = driver.findElement(By.id("cbTimeFilterSelection31459"));
-		Select option = new Select(timeframe);
-		option.selectByValue("THISSCHOOLYEAR");
+		WebElement dropdown = driver.findElement(By.id("cbTimeFilterSelection31459"));
+		Select option = new Select(dropdown);
+		option.selectByVisibleText(timeframe);
 
-		WebElement assignmentTable = driver.findElement(By.className("clIGPTaskGenTbl"));
+		//using JSoup because it's faster (over 20x faster, actually)
 		AssignmentsList assignments = new AssignmentsList();
-
-		int i = 0;
-		List<WebElement> rows = assignmentTable.findElements(By.tagName("tr"));
-		for(WebElement row : rows) {
-			if(i++ == 0) {
-				continue;
-			}
-
-			List<WebElement> cells = row.findElements(By.tagName("td"));
-
+		
+		Document page = Jsoup.parse(driver.getPageSource());
+		
+		Element assignmentTable = page.getElementsByClass("clIGPTaskGenTbl").get(0);
+		Elements rows = assignmentTable.select("tr");
+		rows.remove(0);
+		
+		for(Element row : rows) {
 			ArrayList<String> cellData = new ArrayList<String>();
-			for(WebElement cell : cells) {
-				cellData.add(cell.getText());
+			for(Element cell : row.select("td")) {
+				cellData.add(cell.text());
 			}
-
+			
 			assignments.add(new Assignment(cellData));
 		}
 

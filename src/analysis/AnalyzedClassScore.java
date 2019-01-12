@@ -2,7 +2,9 @@ package analysis;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
+import javafx.util.Pair;
 import scraper.Assignment;
 import scraper.AssignmentsList;
 import scraper.ClassScore;
@@ -12,10 +14,15 @@ public class AnalyzedClassScore {
 	private ArrayList<Category> categories;
 	private HashMap<Category, Double> categoryScores;
 	private String courseName;
+	private boolean hasUndiplayedAssignments;
 	private double totalScore;
+	private ClassScore classScore;
+	private ArrayList<Pair<Double, Double>> fractions;
 	
 	public AnalyzedClassScore(ClassScore classScore, AssignmentsList assignments) {
 		this.courseName = classScore.getCourseTitle();
+		this.classScore = classScore;
+		this.hasUndiplayedAssignments = false;
 		this.categories = Utils.getCategories(assignments).get(courseName);
 		
 		HashMap<Category, ArrayList<Assignment>> sortedAssignments = sortAssignments(courseName, categories, assignments);
@@ -34,10 +41,15 @@ public class AnalyzedClassScore {
 		}
 		
 		totalScore = calculateTotalScore(scores);
+		
+		if(totalScore != Double.parseDouble(Utils.getClassScores().get(Utils.getClassScores().indexOf(classScore)).getCurrentScore())) {
+			hasUndiplayedAssignments = true;
+		}
 	}
 	
 	public AnalyzedClassScore(ClassScore classScore) {
 		this.courseName = classScore.getCourseTitle();
+		this.classScore = classScore;
 		this.categories = Utils.getCategories().get(courseName);
 		
 		ArrayList<Assignment> assignments = Utils.getAssignments();
@@ -76,6 +88,35 @@ public class AnalyzedClassScore {
 			sum = 100.0;
 		}
 		
+		Iterator<Pair<Double, Double>> it = fractions.iterator();
+		for(Category c : categories) {
+			if(c.hasGFE()) {
+				Pair<Double, Double> fraction = it.next();
+				double numerator = fraction.getKey();
+				double denominator = fraction.getValue();
+				
+				double p = numerator / denominator;
+				double y = ((numerator + 1) / p) - denominator;
+				double x = 1;
+				double delta = 0.5;
+				if(Math.abs(((sum - p) + ((numerator + x) / (denominator + y))) - Double.parseDouble(classScore.getCurrentScore())) <= delta) {
+					scores.put(c, (numerator + x) / (denominator + y));
+				}else {
+					while (x < 100) {
+						y = ((numerator + x) / p) - denominator;
+
+						if(Math.abs(((sum - p) + ((numerator + x) / (denominator + y))) - Double.parseDouble(classScore.getCurrentScore())) <= delta) {
+							scores.put(c, (numerator + x) / (denominator + y));
+
+							break;
+						}
+
+						x++;
+					}
+				}
+			}
+		}
+		
 		return sum;
 	}
 	
@@ -96,11 +137,15 @@ public class AnalyzedClassScore {
 	
 	private HashMap<Category, Double> calculateCategoryScores(ArrayList<Category> categories, HashMap<Category, ArrayList<Assignment>> sortedAssignments) {
 		HashMap<Category, Double> scores = new HashMap<Category, Double>();
-		for(Category c : categories) {
-			double numerator = 0;
-			double denominator = 0;
-			for(Assignment a : sortedAssignments.get(c)) {
+		fractions = new ArrayList<Pair<Double, Double>>();
+		for (Category c : categories) {
+			double numerator = 0.0;
+			double denominator = 0.0;
+			for (Assignment a : sortedAssignments.get(c)) {
 				if(!a.getScore().contains("/")) {
+					if(a.getScore().equals("Good Faith Effort") || a.getScore().equals("GFE")) {
+						c.setHasGFE(true);
+					}
 					continue;
 				}
 				
@@ -108,8 +153,9 @@ public class AnalyzedClassScore {
 				numerator += Double.parseDouble(stringScore[0]);
 				denominator += Double.parseDouble(stringScore[1]);
 			}
-					
+			
 			scores.put(c, numerator / denominator);
+			fractions.add(new Pair<Double, Double>(numerator, denominator));
 		}
 
 		return scores;
@@ -136,6 +182,13 @@ public class AnalyzedClassScore {
 		}
 		
 		return sortedAssignments;
+	}
+	
+	//it is possible for parentconnect to have an assignment grade affect
+	//a class score without showing the actual assignment. this method indicates
+	//the presence of these undisplayed grades.
+	public boolean hasUndisplayedScores() {
+		return hasUndiplayedAssignments;
 	}
 	
 	public HashMap<Category, Double> getCategoryScores() {

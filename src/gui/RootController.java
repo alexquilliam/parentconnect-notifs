@@ -2,33 +2,37 @@ package gui;
 
 import java.util.ArrayList;
 
-import com.sun.javafx.scene.control.skin.TableHeaderRow;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 import scraper.ClassScore;
+import utils.GraphicUtils;
 import utils.Utils;
 
 public class RootController {
 	@FXML private BorderPane root;
-	@FXML private ResizableTableView<DisplayableClassScore> table;
+	@FXML private TableView<DisplayableClassScore> table;
 	@FXML private TableColumn<DisplayableClassScore, String> courses;
 	@FXML private TableColumn<DisplayableClassScore, String> grades;
-	@FXML private TableColumn<DisplayableClassScore, String> scores;
+	@FXML private TableColumn<DisplayableClassScore, Hyperlink> scores;
 	@FXML private TableColumn<DisplayableClassScore, String> changes;
 	@FXML private TableColumn<DisplayableClassScore, String> teachers;
-	
-	public void initialize() {		
+
+	public void initialize() {	
 		courses.setCellValueFactory(
 			new Callback<CellDataFeatures<DisplayableClassScore, String>, ObservableValue<String>>() {
 				public ObservableValue<String> call(CellDataFeatures<DisplayableClassScore, String> p) {
@@ -44,9 +48,37 @@ public class RootController {
 				});
 		
 		scores.setCellValueFactory(
-				new Callback<CellDataFeatures<DisplayableClassScore, String>, ObservableValue<String>>() {
-					public ObservableValue<String> call(CellDataFeatures<DisplayableClassScore, String> p) {
-						return new ReadOnlyObjectWrapper<>(p.getValue().getCourseScore());
+				new Callback<CellDataFeatures<DisplayableClassScore, Hyperlink>, ObservableValue<Hyperlink>>() {
+					public ObservableValue<Hyperlink> call(CellDataFeatures<DisplayableClassScore, Hyperlink> p) {
+						Hyperlink link = new Hyperlink(p.getValue().getCourseScore());
+						link.setOnAction(e -> {	
+							link.visitedProperty().set(false);
+							
+							FXMLLoader loader = new FXMLLoader(CategoryGradesController.class.getResource("category_grades.fxml"));
+							BorderPane root = null;
+							try {
+								root = loader.load();
+							}catch (Exception ex) {
+								ex.printStackTrace();
+							}
+							
+							Stage stage = new Stage();
+							
+							CategoryGradesTable categoryGrades = new CategoryGradesTable(p.getValue());
+							categoryGrades.setId("table");
+							categoryGrades.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+							
+							root.setCenter(categoryGrades);
+							
+							stage.setScene(new Scene(root, 600, 400));
+							stage.setTitle(p.getValue().getCourseName());
+							stage.getIcons().add(new Image("icon.png"));
+							stage.setResizable(false);
+							
+							stage.show();
+						});
+						
+						return new ReadOnlyObjectWrapper<Hyperlink>(link);
 					}
 				});
 		
@@ -65,7 +97,7 @@ public class RootController {
 				});
 		
 		table.getItems().setAll(getDisplayableClassScores());
-
+		
 		ArrayList<IntegerProperty> rowIndexes = new ArrayList<IntegerProperty>();
 		
 		for(int i = 1; i < table.getItems().size(); i++) {
@@ -93,17 +125,8 @@ public class RootController {
 		});
 		
 		table.heightProperty().addListener((observer, oldValue, newValue) -> {
-			displayFilledRows(table);
+			GraphicUtils.displayFilledRows(table);
 		});
-	}
-	
-	private void displayFilledRows(TableView<?> table) {
-		TableHeaderRow headerRow = (TableHeaderRow) table.lookup("TableHeaderRow");
-
-		double otherComponentHeights = table.getInsets().getTop() + table.getInsets().getBottom() + (headerRow != null ? headerRow.getHeight() : 0);
-		double rowHeight = (((BorderPane) table.getParent()).getHeight() - otherComponentHeights) / table.getItems().size();
-		
-		table.setFixedCellSize(rowHeight);
 	}
 	
 	private ArrayList<DisplayableClassScore> getDisplayableClassScores() {

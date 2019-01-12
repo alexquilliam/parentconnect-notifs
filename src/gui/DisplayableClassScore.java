@@ -1,12 +1,12 @@
 package gui;
 
-import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Objects;
 
 import analysis.AnalyzedClassScore;
+import analysis.Category;
 import analysis.ChangeCalculator;
 import scraper.ClassScore;
-import utils.Utils;
 
 public class DisplayableClassScore {
 	private String courseName;
@@ -14,6 +14,7 @@ public class DisplayableClassScore {
 	private String courseScore;
 	private String courseChange;
 	private String courseTeacher;
+	private HashMap<Category, Double> categoryScores;
 
 	public DisplayableClassScore(ClassScore classScore) {
 		AnalyzedClassScore analyzedClassScore = new AnalyzedClassScore(classScore);
@@ -22,10 +23,13 @@ public class DisplayableClassScore {
 		courseGrade = classScore.getCurrentGrade();
 		courseScore = String.format("%.2f", analyzedClassScore.getTotalScore());
 		
-		double change =  new ChangeCalculator(classScore, LocalDate.parse("11/01/2018", Utils.DATE_FORMAT), LocalDate.parse("11/09/2018", Utils.DATE_FORMAT)).getChange();
+		//double change =  new ChangeCalculator(classScore, LocalDate.parse("11/01/2018", Utils.DATE_FORMAT), LocalDate.parse("11/09/2018", Utils.DATE_FORMAT)).getChange();
+		double change =  new ChangeCalculator(classScore, 7).getChange();
 		courseChange = change > 0 ? String.format("+%.2f", change) : String.format("%.2f", change);
 		
 		courseTeacher = classScore.getTeacher().toUpperCase();
+		
+		categoryScores = analyzedClassScore.getCategoryScores();
 	}
 
 	public String getCourseName() {
@@ -46,6 +50,10 @@ public class DisplayableClassScore {
 
 	public String getCourseTeacher() {
 		return courseTeacher;
+	}
+	
+	public HashMap<Category, Double> getCategoryScores() {
+		return categoryScores;
 	}
 
 	@Override

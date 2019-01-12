@@ -47,3 +47,13 @@
     -fx-padding: 0;
     -fx-shape: null;
 }
+
+.hyperlink {
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 4 0;
+    -fx-underline: false;
+}
+
+.hyperlink:visited {
+	-fx-text-color: #00ff22
+}
